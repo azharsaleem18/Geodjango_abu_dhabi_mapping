@@ -1,0 +1,121 @@
+{% extends 'partial/base.html' %}
+{% block header %} {% include 'partial/header.html' %} {% endblock %}
+{% load static %}
+{% load i18n %}
+{% load leaflet_tags %}
+{% block title %}{% trans "Dashboard | Home" %}{% endblock %}
+{% block script %}
+    {% leaflet_js plugins="ALL" %}
+    {% leaflet_css plugins="ALL" %}
+    <link href="{% static 'leaflet/packages/css/leaflet.groupedlayercontrol.min.css' %}" rel="stylesheet">
+    <script src="{% static 'leaflet/packages/js/leaflet.ajax.js' %}"></script>
+    <script src="{% static 'leaflet/packages/js/leaflet.groupedlayercontrol.js' %}"></script>
+
+    <link rel="stylesheet" href="{% static 'leaflet/packages/css/leaflet-measure.css' %}">
+    <script src="{% static 'leaflet/packages/js/leaflet-measure.js' %}"></script>
+
+    <style>
+        #gis {
+            width: 100%;
+            height: 92vh;
+        }
+        .coordinate {
+            position: absolute;
+            bottom: 70px;
+            right: 40%;
+        }
+    </style>
+    <script>
+        function all_layers(map, options) {
+
+            // OSM Layer
+            var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            });
+            osm.addTo(map);
+
+
+            // Street View
+            StreetsView = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            });
+            StreetsView.addTo(map);
+
+            // satellite view
+            HybridView = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+            });
+            HybridView.addTo(map);
+
+
+            // boundary
+            var boundaryview = new L.GeoJSON.AJAX("", {
+
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup(feature.properties.geom)
+                }
+            });
+            // boundaryview.addTo(map);
+
+            // waterway
+            var waterwayview = new L.GeoJSON.AJAX("", {
+
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup(feature.properties.geom)
+                }
+            });
+            // waterwayview.addTo(map);
+
+            // names
+            var namesview = new L.GeoJSON.AJAX("", {
+
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup(feature.properties.name)
+                }
+            });
+            // namesview.addTo(map);
+
+
+            // Leaflet Mouse Event
+            map.on('mousemove', function (e) {
+                document.getElementsByClassName('coordinate')[0].innerHTML = 'lat: ' + e.latlng.lat + ' lng: ' + e.latlng.lng;
+                console.log('lat: ' + e.latlng.lat + 'lag: ' + e.latlang.lng);
+            });
+
+
+            // Measure
+            L.control.measure().addTo(map);
+
+
+            // Map Layers
+            var baseMaps = {
+                "OSM": osm,
+                "Street": StreetsView,
+                "Satellite": HybridView,
+            };
+
+            var overlayMaps = {
+                "Boundary": boundaryview,
+                "Waterway": waterwayview,
+                "Names": namesview,
+            };
+            L.control.layers(baseMaps, overlayMaps, { 'collapsed': false, 'hideSingleBase': true }).addTo(map);
+
+
+
+        }
+    </script>
+    
+{% endblock %}
+
+{% block contents %}
+<!-- Dashboard content -->
+<div class="row">
+    {% leaflet_map "gis" callback="window.all_layers" %}
+    <div id="map" class="leaflet-control coordinate"></div>
+</div>
+<!-- /dashboard content -->
+{% endblock %}
+
+{% block footer %} {% include 'partial/footer.html' %} {% endblock %}
